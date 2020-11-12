@@ -94,6 +94,18 @@ if (outcome != success) of /subsystem=jgroups/stack=tcp/protocol=JDBC_PING:read-
 <%- if scope['keycloak::datasource_driver'] == 'mysql' -%>
 /subsystem=jgroups/stack=tcp/protocol=JDBC_PING: add(add-index=0, data-source="KeycloakDS", properties=[initialize_sql="CREATE TABLE IF NOT EXISTS JGROUPSPING (own_addr varchar(200) NOT NULL, cluster_name varchar(200) NOT NULL, updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, ping_data varbinary(5000) DEFAULT NULL, PRIMARY KEY (own_addr, cluster_name)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin"])
 <%- end -%>
+<%- if scope['keycloak::datasource_driver'] == 'oracle' -%>
+/subsystem=jgroups/stack=tcp/protocol=JDBC_PING: add(add-index=0, data-source="KeycloakDS", properties=[initialize_sql="DECLARE
+  te number := 0;
+BEGIN
+  SELECT COUNT(1) INTO te FROM USER_TABLES WHERE TABLE_NAME='JGROUPSPING';
+  IF te = 0
+  THEN
+    EXECUTE IMMEDIATE 'CREATE TABLE JGROUPSPING (own_addr VARCHAR2(200) NOT NULL, cluster_name VARCHAR2(200) NOT NULL, created TIMESTAMP DEFAULT current_timestamp, ping_data BLOB, CONSTRAINT PK_JGROUPSPING PRIMARY KEY (own_addr, cluster_name))';
+  END IF;
+END;
+/"])
+<%- end -%>
 end-if
 if (outcome == success) of /subsystem=jgroups/stack=tcp/protocol=MPING:read-resource
 /subsystem=jgroups/stack=tcp/protocol=MPING: remove()
